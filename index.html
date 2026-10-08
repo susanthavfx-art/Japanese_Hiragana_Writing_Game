@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>あいうえお — Let's Write Japanese!</title>
+<style>
+  :root{
+    --sky1:#bfe9ff; --sky2:#eaf8ff;
+    --ink:#243b6b; --blue:#2f7cf6; --green:#2fc07a; --orange:#ff8a3d; --red:#ff5a5f;
+    --card:#ffffff; --soft:#eef4ff;
+    --font: "Comic Sans MS", "Chalkboard SE", "Segoe UI Rounded", "Trebuchet MS", "Noto Sans Sinhala", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--sky1) 0%, var(--sky2) 55%, #fff 100%);
+    min-height:100vh;
+    display:flex; justify-content:center;
+    padding:14px 12px 28px;
+    overflow-x:hidden;
+  }
+  /* ---------- background decorations (pure CSS) ---------- */
+  .sun{position:fixed; top:-40px; right:-30px; width:170px; height:170px; border-radius:50%;
+    background:radial-gradient(circle at 40% 40%, #ffe89a, #ffd166 60%, rgba(255,209,102,0) 72%); z-index:0;}
+  .cloud{position:fixed; background:#fff; border-radius:100px; opacity:.85; z-index:0; filter:drop-shadow(0 6px 10px rgba(90,150,200,.15));}
+  .cloud:before,.cloud:after{content:""; position:absolute; background:#fff; border-radius:50%;}
+  .c1{width:120px;height:44px; top:60px; left:-20px; animation:drift 26s linear infinite;}
+  .c1:before{width:56px;height:56px; top:-26px; left:18px;}
+  .c1:after{width:40px;height:40px; top:-18px; left:62px;}
+  .c2{width:90px;height:34px; top:210px; right:-10px; animation:drift 34s linear infinite reverse;}
+  .c2:before{width:44px;height:44px; top:-20px; left:14px;}
+  .c2:after{width:30px;height:30px; top:-14px; left:50px;}
+  @keyframes drift{0%{transform:translateX(0)}50%{transform:translateX(60px)}100%{transform:translateX(0)}}
+
+  .app{position:relative; z-index:1; width:100%; max-width:560px;}
+
+  header{text-align:center; margin-bottom:10px;}
+  h1{margin:2px 0 2px; font-size:clamp(21px,5.4vw,30px); letter-spacing:.5px;
+     text-shadow:0 2px 0 #fff, 0 4px 10px rgba(60,120,180,.18);}
+  h1 span.jp{color:var(--blue);}
+  .tagline{margin:0; font-size:13px; opacity:.75;}
+
+  /* ---------- progress chips ---------- */
+  .chips{display:flex; justify-content:center; gap:8px; margin:12px 0 10px; flex-wrap:wrap;}
+  .chip{
+    width:46px;height:46px;border-radius:50%; border:3px solid #fff;
+    background:#dfe8f7; color:#9db0cc; font-size:22px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 0 rgba(90,120,170,.18); cursor:not-allowed; position:relative;
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",serif;
+    transition:transform .18s, background .25s, color .25s;
+  }
+  .chip.unlocked{background:#fff; color:var(--ink); border-color:#cfe0ff; cursor:pointer;}
+  .chip.unlocked:hover{transform:translateY(-3px);}
+  .chip.current{border-color:var(--blue); background:var(--blue); color:#fff; transform:scale(1.12);
+    box-shadow:0 0 0 5px rgba(47,124,246,.18), 0 4px 0 rgba(47,124,246,.35);}
+  .chip.done{background:var(--green); color:#fff; border-color:#fff;}
+  .chip .lock{font-size:16px;}
+
+  /* ---------- card ---------- */
+  .card{
+    background:var(--card); border-radius:26px; padding:14px 14px 16px;
+    box-shadow:0 14px 30px rgba(70,120,180,.22), inset 0 0 0 4px #fff;
+    position:relative;
+  }
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .letterbox{display:flex; align-items:baseline; gap:10px;}
+  .bigchar{font-size:44px; line-height:1; color:var(--blue);
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",serif;}
+  .romaji{font-size:20px; font-weight:bold; color:#7b8db3;}
+  .romaji small{display:block; font-size:11px; font-weight:normal; opacity:.8;}
+  .strokedots{display:flex; gap:6px; align-items:center;}
+  .sdot{width:12px;height:12px;border-radius:50%;background:#dfe6f5;box-shadow:inset 0 0 0 2px #cfdaf0;}
+  .sdot.done{background:var(--green); box-shadow:none;}
+  .sdot.now{background:var(--orange); box-shadow:0 0 0 4px rgba(255,138,61,.25); transform:scale(1.15);}
+
+  /* speech bubble */
+  .bubble{
+    position:relative; background:var(--soft); border-radius:16px; padding:9px 14px;
+    font-size:16px; text-align:center; margin:2px 0 10px; min-height:42px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .25s, color .25s;
+  }
+  .bubble:after{content:""; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%);
+    border:8px solid transparent; border-top-color:var(--soft); border-bottom:0;}
+  .bubble.ok{background:#e2f9ee; color:#16794c;}
+  .bubble.ok:after{border-top-color:#e2f9ee;}
+  .bubble.bad{background:#ffe9ea; color:#c22c33;}
+  .bubble.bad:after{border-top-color:#ffe9ea;}
+  .bubble.pop{animation:pop .3s ease;}
+  @keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .bubble .sub{font-size:11px; opacity:.7; display:block;}
+
+  /* board */
+  .board-wrap{position:relative; width:min(100%, 58vh); margin:0 auto; aspect-ratio:1/1; border-radius:20px; overflow:hidden;
+    background:#fffdf7; box-shadow:inset 0 0 0 3px #ffe9b8, 0 4px 12px rgba(120,140,180,.12);}
+  canvas#board{position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block;}
+  canvas#confetti{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:4;}
+  .shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97);}
+  @keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(5px)}
+    30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+  .glow{animation:glow .7s ease-out;}
+  @keyframes glow{0%{box-shadow:inset 0 0 0 3px #ffe9b8, 0 0 0 0 rgba(47,192,122,.6)}
+    100%{box-shadow:inset 0 0 0 3px #ffe9b8, 0 0 0 26px rgba(47,192,122,0)}}
+
+  /* celebration overlay */
+  .overlay{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.72); backdrop-filter:blur(2px); text-align:center; padding:16px; z-index:3;}
+  .overlay.show{display:flex; animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .overlay h2{margin:0 0 6px; font-size:clamp(26px,7vw,40px); color:var(--green);
+    text-shadow:0 3px 0 #fff, 0 6px 14px rgba(47,192,122,.3); animation:pop .45s ease;}
+  .overlay .stars{font-size:30px; letter-spacing:4px; margin:4px 0 10px;}
+  .overlay p{margin:0 0 14px; font-size:15px; opacity:.85;}
+
+  /* buttons */
+  .controls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;}
+  button.btn{
+    font-family:var(--font); font-size:15px; border:0; cursor:pointer;
+    padding:11px 16px; border-radius:999px; background:#eef3ff; color:var(--ink);
+    box-shadow:0 4px 0 #cdd9f2; transition:transform .12s, box-shadow .12s, background .2s;
+  }
+  button.btn:active{transform:translateY(3px); box-shadow:0 1px 0 #cdd9f2;}
+  button.btn.primary{background:var(--blue); color:#fff; box-shadow:0 4px 0 #1f5fc4;}
+  button.btn.primary:active{box-shadow:0 1px 0 #1f5fc4;}
+  button.btn.go{background:var(--green); color:#fff; box-shadow:0 4px 0 #1f9a5e; font-size:18px; padding:13px 26px;}
+  button.btn.go:active{box-shadow:0 1px 0 #1f9a5e;}
+  button.btn[disabled]{opacity:.5; cursor:default;}
+  .tools{display:flex; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap;}
+  .toggle{font-size:13px; padding:8px 12px; background:#f6f8ff; box-shadow:0 3px 0 #e2e9fb;}
+  .howto{margin:12px 2px 0; font-size:12.5px; text-align:center; opacity:.7; line-height:1.6;}
+  .footnote{text-align:center; font-size:11px; opacity:.5; margin-top:10px;}
+
+  /* ---------- small phones ---------- */
+  @media (max-width:480px){
+    body{padding:8px 6px 14px;}
+    h1{font-size:20px;}
+    .card{padding:10px 8px 12px; border-radius:20px;}
+    .chips{margin:8px 0 8px; gap:6px;}
+    .chip{width:40px; height:40px; font-size:19px;}
+    .bigchar{font-size:36px;}
+    .romaji{font-size:17px;}
+    .bubble{min-height:38px; font-size:14.5px; padding:7px 10px;}
+    .controls{margin-top:10px; gap:6px;}
+    button.btn{padding:10px 12px; font-size:14px;}
+    .howto{font-size:11.5px; margin-top:8px;}
+    .footnote{font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="sun"></div><div class="cloud c1"></div><div class="cloud c2"></div>
+
+<div class="app">
+  <header>
+    <h1><span class="jp">あいうえお</span> Writing Fun!</h1>
+    <p class="tagline" id="tagline">Trace every stroke — in the right order!</p>
+  </header>
+
+  <div class="chips" id="chips"></div>
+
+  <main class="card">
+    <div class="topbar">
+      <div class="letterbox">
+        <div class="bigchar" id="bigchar">あ</div>
+        <div class="romaji">“<span id="romaji">a</span>”<small id="romajiSub">as in <b>art</b></small></div>
+      </div>
+      <div class="strokedots" id="strokedots"></div>
+    </div>
+
+    <div class="bubble" id="bubble"><span id="bubbleText">Let's go!</span></div>
+
+    <div class="board-wrap" id="boardWrap">
+      <canvas id="board" width="600" height="600"></canvas>
+      <canvas id="confetti"></canvas>
+      <div class="overlay" id="overlay">
+        <div>
+          <h2 id="ovTitle">You are done!</h2>
+          <div class="stars" id="ovStars">⭐⭐⭐</div>
+          <p id="ovText">Beautiful writing!</p>
+          <button class="btn go" id="ovNext">Next letter →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="btnShow">▶ Show me</button>
+      <button class="btn" id="btnHear">🔊 Hear it</button>
+      <button class="btn" id="btnClear">↺ Clear</button>
+    </div>
+
+    <div class="tools">
+      <button class="btn toggle" id="btnDiff">🎯 Easy</button>
+      <button class="btn toggle" id="btnSound">🔔 Sound: on</button>
+      <button class="btn toggle" id="btnLang">🌐 English</button>
+    </div>
+
+    <p class="howto" id="howto">① Start on the green dot ・ ② Follow the arrow ・ ③ Finish every stroke</p>
+  </main>
+
+  <p class="footnote">Hiragana stroke data: KanjiVG (CC BY-SA 3.0) ・ made for little hands ✋</p>
+</div>
+
+<script>
+/* =======================================================================
+   あいうえお WRITING GAME — single page, no external files
+   ======================================================================= */
+
+/* ---------- 1. stroke data (KanjiVG, CC BY-SA 3.0) ---------- */
+const RAW = {
+  'あ': [
+    "M31.01,33c0.88,0.88,2.75,1.82,5.25,1.75c8.62-0.25,20-2.12,29.5-4.25c1.51-0.34,4.62-0.88,6.62-0.5",
+    "M49.76,17.62c0.88,1,1.82,3.26,1.38,5.25c-3.75,16.75-6.25,38.13-5.13,53.63c0.41,5.7,1.88,10.88,3.38,13.62",
+    "M65.63,44.12c0.75,1.12,1.16,4.39,0.5,6.12c-4.62,12.26-11.24,23.76-25.37,35.76c-6.86,5.83-15.88,3.75-16.25-8.38c-0.34-10.87,13.38-23.12,32.38-26.74c12.42-2.37,27,1.38,30.5,12.75c4.05,13.18-3.76,26.37-20.88,30.49"
+  ],
+  'い': [
+    "M21.5,29.66c2.01,2.17,2.61,4.68,2.17,7.43c-3.09,19.16-1.03,32.01,7.93,41.45c6.12,6.45,6.26,3.14,7.04-5.21",
+    "M72.96,36.51c9.44,8.05,17.79,18.82,18.41,33.83"
+  ],
+  'う': [
+    "M42,15.5c5.62,2.12,9.62,3,12.88,3c8.27,0,8,1.12-0.38,5.5",
+    "M33,42.38c2.12,1.12,4.12,2.88,8.5,1.38c4.38-1.5,12.75-7.12,18.5-7c5.75,0.12,10.25,5,10.25,18c0,15.49-8.25,30.24-24.37,41.24"
+  ],
+  'え': [
+    "M40.52,13.25c5.62,2.12,10,3,14.12,3c8.27,0,8,1.12-0.38,5.5",
+    "M32.52,45.12c1.88,1.25,4.5,1.75,7.38,0.62c3.29-1.29,17-7.88,21.25-9.88c4.25-2,8.32,0.04,4.38,4.62c-12.26,14.27-27.26,31.52-39.51,44.4c-3.26,3.42-0.58,3.54,1.5,1.37c13.5-14.12,18.12-20.12,23.62-20.12c7.13,0,3.5,16.75,6.75,22.38c3.25,5.63,19.12,3.75,26.12,2.12"
+  ],
+  'お': [
+    "M22.88,35.12c1.38,1,3.62,2.38,6,2.12c2.38-0.26,19.62-5.12,21.12-5.74c1.5-0.62,4-1.25,5.88-2",
+    "M41.5,16.12c2.25,1,3.59,4.39,3.12,7.38c-2.5,16.12-3.37,45.53-2.25,58.38c0.75,8.62-0.64,10.45-7.12,7.12c-5.13-2.62-13.75-8-13.75-12.38c0-7.5,24.38-23.62,44.75-23.62c17.25,0,25,8.25,25,17.25c0,8.25-9.38,18.88-26.75,21",
+    "M73,22.12c5.38,2.62,8.88,5.88,10.62,8.25c2.27,3.08,0.38,4.5-1.12,5"
+  ]
+};
+
+const LETTERS = [
+  {ch:'あ', rom:'a',  hint:'as in “art”'},
+  {ch:'い', rom:'i',  hint:'as in “eat”'},
+  {ch:'う', rom:'u',  hint:'as in “boot”'},
+  {ch:'え', rom:'e',  hint:'as in “end”'},
+  {ch:'お', rom:'o',  hint:'as in “or”'}
+];
+
+/* ---------- 2. words (English + Sinhala) ---------- */
+const STR = {
+  en:{
+    tagline:"Trace every stroke — in the right order!",
+    stroke:(n,m)=>`Stroke ${n} of ${m} — follow the green line!`,
+    good:["Great!","Nice!","Perfect!","Well done!","Awesome!","Super!"],
+    wrong:"Let's try again!",
+    hStart:"Start on the green dot ●",
+    hEnd:"Follow the arrow to the end →",
+    hDev:"Stay on the line!",
+    hCov:"Draw the whole stroke!",
+    hDir:"Go the other way — follow the arrow!",
+    hTiny:"That was too short — draw the whole stroke!",
+    done:"You are done!",
+    next:"Next letter →",
+    allDone:"All done! You can write あいうえお!",
+    playAgain:"Play again",
+    watch:"Watch me!",
+    nowYou:"Now you try!",
+    show:"▶ Show me", hear:"🔊 Hear it", clear:"↺ Clear",
+    sound:"🔔 Sound", easy:"🎯 Easy", normal:"🎯 Normal",
+    lang:"🌐 English",
+    howto:"① Start on the green dot ・ ② Follow the arrow ・ ③ Finish every stroke",
+    sub:null
+  },
+  si:{
+    tagline:"හරි පිළිවෙලට පහරවල් ලියන්න!",
+    stroke:(n,m)=>`පහර ${n} / ${m} — කොළ පාට ඉර දිගේ යන්න!`,
+    good:["හරි!","නියමයි!","විශිෂ්ටයි!","හොඳයි!","සුපිරි!"],
+    wrong:"ආයෙත් උත්සාහ කරමු!",
+    hStart:"කොළ පාට තිතෙන් පටන් ගන්න ●",
+    hEnd:"ඊතලය දිගේ අගටම යන්න →",
+    hDev:"ඉර උඩින්ම යන්න!",
+    hCov:"මුළු පහරම අඳින්න!",
+    hDir:"ඊතලයේ දිශාවට යන්න!",
+    hTiny:"ඒක කෙටි වැඩියි — මුළු පහරම අඳින්න!",
+    done:"ඔබ ඉවරයි!",
+    next:"ඊළඟ අකුර →",
+    allDone:"සියල්ල හරි! ඔබට あいうえお ලියන්න පුළුවන්!",
+    playAgain:"ආයෙත් සෙල්ලම් කරමු",
+    watch:"මම ලියනවා බලන්න!",
+    nowYou:"දැන් ඔබ ලියන්න!",
+    show:"▶ මට පෙන්නන්න", hear:"🔊 අහන්න", clear:"↺ මකන්න",
+    sound:"🔔 සද්දය", easy:"🎯 ලේසියි", normal:"🎯 සාමාන්‍ය",
+    lang:"🌐 සිංහල",
+    howto:"① කොළ පාට තිතෙන් පටන් ගන්න ・ ② ඊතලය දිගේ යන්න ・ ③ හැම පහරම ලියන්න",
+    sub:null
+  }
+};
+let LANG = 'en';
+const T = ()=>STR[LANG];
+
+/* ---------- 3. geometry: sample the SVG paths into canvas points ---------- */
+const SIZE = 600;      // logical canvas size
+const BOX  = 470;      // how big the character is drawn
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function buildGeometry(){
+  const svg = document.createElementNS(SVGNS,'svg');
+  svg.setAttribute('width','0'); svg.setAttribute('height','0');
+  svg.style.position='absolute'; svg.style.opacity='0';
+  document.body.appendChild(svg);
+
+  for(const L of LETTERS){
+    const raw = RAW[L.ch], strokes = [];
+    let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+    for(const d of raw){
+      const p = document.createElementNS(SVGNS,'path');
+      p.setAttribute('d', d); svg.appendChild(p);
+      const len = p.getTotalLength();
+      const n = Math.max(60, Math.ceil(len/0.35));   // ~1px steps after scaling
+      const pts = [];
+      for(let i=0;i<=n;i++){
+        const q = p.getPointAtLength(len*i/n);
+        pts.push({x:q.x, y:q.y});
+        if(q.x<minx)minx=q.x; if(q.x>maxx)maxx=q.x;
+        if(q.y<miny)miny=q.y; if(q.y>maxy)maxy=q.y;
+      }
+      strokes.push(pts); svg.removeChild(p);
+    }
+    const bw = maxx-minx, bh = maxy-miny;
+    const s  = Math.min(BOX/bw, BOX/bh);
+    const ox = (SIZE-bw*s)/2 - minx*s;
+    const oy = (SIZE-bh*s)/2 - miny*s;
+    L.strokes = strokes.map(pts => pts.map(p=>({x:p.x*s+ox, y:p.y*s+oy})));
+  }
+  document.body.removeChild(svg);
+}
+
+/* ---------- 4. canvas + drawing helpers ---------- */
+const cv = document.getElementById('board');
+const ctx = cv.getContext('2d');
+const confCv = document.getElementById('confetti');
+const confCtx = confCv.getContext('2d');
+const wrap = document.getElementById('boardWrap');
+
+function fitCanvasDPR(){
+  const dpr = Math.min(window.devicePixelRatio||1, 2.5);
+  const r = cv.getBoundingClientRect();
+  if(r.width < 10) return;
+  cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+  ctx.setTransform(cv.width/SIZE,0,0,cv.height/SIZE,0,0);
+  confCv.width = cv.width; confCv.height = cv.height;
+  confCtx.setTransform(dpr,0,0,dpr,0,0);
+  render();
+}
+
+function strokePts(ctx2, pts, i0, i1){
+  i0 = i0||0; i1 = (i1===undefined)? pts.length-1 : i1;
+  if(i1<=i0){ return; }
+  ctx2.beginPath();
+  ctx2.moveTo(pts[i0].x, pts[i0].y);
+  for(let i=i0+1;i<i1;i++){
+    const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+    ctx2.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+  }
+  ctx2.lineTo(pts[i1].x, pts[i1].y);
+  ctx2.stroke();
+}
+
+/* ---------- 5. game state ---------- */
+let li = 0;                 // letter index
+let si = 0;                 // stroke index inside the letter
+let ink = [];               // points the child is drawing right now
+let drawing = false;
+let mistakes = 0;           // mistakes in this letter
+let strokeMistakes = 0;     // mistakes on this stroke
+let doneStrokes = [];       // finished strokes (kept for the picture)
+let completed = new Set();  // letters fully written
+let unlocked = 0;           // highest unlocked letter index
+let locked = false;         // input blocked (demo / celebration)
+let demo = null;            // {i, t} while showing
+let flash = null;           // {color, until}
+let easy = true;            // forgiving tolerance
+let soundOn = true;
+let autoTimer = null;
+let pulseT = 0;             // clock for the pulsing start dot
+let FONT = '"Comic Sans MS","Chalkboard SE","Segoe UI Rounded","Trebuchet MS",sans-serif';
+
+const tol = ()=> easy ? 62 : 44;      // px in the 600-unit space
+
+/* ---------- 6. sound (tiny WebAudio synth) ---------- */
+let actx = null;
+function tone(freq, start, dur, type, vol){
+  if(!soundOn) return;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type||'sine'; o.frequency.value = freq;
+    const t0 = actx.currentTime + start;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol||0.18, t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }catch(e){}
+}
+const sndGood  = ()=>{ tone(660,0,.12,'sine',.16); tone(880,.09,.20,'sine',.16); };
+const sndBad   = ()=>{ tone(300,0,.16,'triangle',.14); tone(220,.14,.24,'triangle',.14); };
+const sndDone  = ()=>{ [523,659,784,1047].forEach((f,i)=>tone(f,i*0.11,.35,'sine',.18)); };
+const sndTap   = ()=>{ tone(520,0,.07,'sine',.10); };
+function speak(ch){
+  if(!soundOn || !('speechSynthesis' in window)) return;
+  try{
+    const u = new SpeechSynthesisUtterance(ch);
+    u.lang = 'ja-JP'; u.rate = 0.7; u.pitch = 1.2;
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ---------- 7. rendering ---------- */
+function render(){
+  ctx.clearRect(0,0,SIZE,SIZE);
+
+  // worksheet guides
+  ctx.save();
+  ctx.strokeStyle = '#ffd9a8'; ctx.lineWidth = 2; ctx.setLineDash([8,10]);
+  ctx.beginPath(); ctx.moveTo(SIZE/2,26); ctx.lineTo(SIZE/2,SIZE-26);
+  ctx.moveTo(26,SIZE/2); ctx.lineTo(SIZE-26,SIZE/2); ctx.stroke();
+  ctx.restore();
+
+  // faint romaji watermark
+  ctx.save();
+  ctx.fillStyle = 'rgba(120,150,200,0.10)';
+  ctx.font = 'bold 190px ' + FONT;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(LETTERS[li].rom.toUpperCase(), SIZE/2, SIZE/2+10);
+  ctx.restore();
+
+  const L = LETTERS[li], st = L.strokes;
+
+  // upcoming strokes: soft grey road
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#e7ecf7'; ctx.lineWidth=54;
+  st.forEach((p,i)=>{ if(i>=si) strokePts(ctx,p); });
+
+  // the whole character as a very light silhouette
+  ctx.strokeStyle='rgba(160,180,215,0.30)'; ctx.lineWidth=2.5; ctx.setLineDash([1,0]);
+  st.forEach(p=>strokePts(ctx,p));
+
+  // strokes already finished: nice dark "ink"
+  ctx.strokeStyle='#27406e'; ctx.lineWidth=20;
+  doneStrokes.forEach(p=>strokePts(ctx,p));
+
+  // current stroke: green road + dashed centre line + start dot + arrow
+  if(si < st.length){
+    const p = st[si];
+    ctx.strokeStyle='rgba(47,192,122,0.30)'; ctx.lineWidth=58;
+    strokePts(ctx,p);
+    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=16;
+    ctx.setLineDash([1,14]); strokePts(ctx,p); ctx.setLineDash([]);
+
+    // arrow at 62% along the stroke
+    const i = Math.round(0.62*(p.length-1));
+    const a = p[Math.max(0,i-6)], b = p[Math.min(p.length-1,i+6)];
+    const ang = Math.atan2(b.y-a.y, b.x-a.x);
+    ctx.save();
+    ctx.translate(p[i].x, p[i].y); ctx.rotate(ang);
+    ctx.fillStyle='rgba(47,192,122,0.95)';
+    ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(-11,11); ctx.lineTo(-11,-11); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // end cap
+    ctx.fillStyle='rgba(255,90,95,0.85)';
+    ctx.beginPath(); ctx.arc(p[p.length-1].x,p[p.length-1].y,9,0,Math.PI*2); ctx.fill();
+
+    // start dot (gently pulsing, with the stroke number inside)
+    if(!demo){
+      const ph = (pulseT*0.9)%1;
+      ctx.strokeStyle = 'rgba(47,192,122,'+(0.45*(1-ph)).toFixed(3)+')';
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(p[0].x,p[0].y, 18+26*ph, 0, Math.PI*2); ctx.stroke();
+      const r = 17 + 2*Math.sin(pulseT*4);
+      ctx.fillStyle='#2fc07a';
+      ctx.beginPath(); ctx.arc(p[0].x,p[0].y,r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(p[0].x,p[0].y,r,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.font='bold 20px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(si+1), p[0].x, p[0].y+1);
+    }
+  }
+
+  // demo ink
+  if(demo){
+    ctx.strokeStyle='#ff8a3d'; ctx.lineWidth=22;
+    for(let k=0;k<demo.i;k++) strokePts(ctx, st[k]);
+    strokePts(ctx, st[demo.i], 0, Math.round((st[demo.i].length-1)*demo.t));
+  }
+
+  // the child's ink
+  if(ink.length>1){
+    ctx.strokeStyle = (flash && flash.bad) ? '#ff5a5f' : '#2f7cf6';
+    ctx.lineWidth=22;
+    strokePts(ctx, ink);
+  }
+
+  // green flash after a good stroke
+  if(flash && flash.good){
+    ctx.strokeStyle = 'rgba(47,192,122,'+flash.a+')'; ctx.lineWidth=46;
+    strokePts(ctx, st[si-1] || st[st.length-1]);
+  }
+}
+
+/* ---------- 8. evaluation ---------- */
+function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+
+function nearestOn(path,p){
+  let best=1e18, bi=0;
+  for(let i=0;i<path.length;i++){
+    const dx=path[i].x-p.x, dy=path[i].y-p.y, d=dx*dx+dy*dy;
+    if(d<best){ best=d; bi=i; }
+  }
+  return {d:Math.sqrt(best), t: bi/(path.length-1)};
+}
+
+function resample(pts, n){
+  if(pts.length<2) return pts.slice();
+  const out=[];
+  for(let i=0;i<n;i++){
+    const f = i/(n-1)*(pts.length-1);
+    const i0 = Math.floor(f), i1 = Math.min(pts.length-1, i0+1), fr = f-i0;
+    out.push({x:pts[i0].x+(pts[i1].x-pts[i0].x)*fr, y:pts[i0].y+(pts[i1].y-pts[i0].y)*fr});
+  }
+  return out;
+}
+
+function pathLength(pts){ let s=0; for(let i=1;i<pts.length;i++) s+=dist(pts[i-1],pts[i]); return s; }
+
+function smooth(arr, w){
+  const out=[];
+  for(let i=0;i<arr.length;i++){
+    let s=0,n=0;
+    for(let j=Math.max(0,i-w); j<=Math.min(arr.length-1,i+w); j++){ s+=arr[j]; n++; }
+    out.push(s/n);
+  }
+  return out;
+}
+
+function evaluate(drawn, path){
+  const TOL = tol();
+  const plen = pathLength(path);
+  const d = resample(drawn, 90);
+  if(pathLength(drawn) < Math.min(60, plen*0.25))
+    return {ok:false, hint:'tiny'};
+
+  // little hands may start / stop a hair away from the dot — allow more on long strokes
+  const edgeTol = Math.max(TOL*1.5, plen*0.10);
+  if(dist(d[0], path[0]) > edgeTol) return {ok:false, hint:'start'};
+  if(dist(d[d.length-1], path[path.length-1]) > edgeTol) return {ok:false, hint:'end'};
+
+  let maxDev=0; const ts=[];
+  for(const p of d){
+    const r = nearestOn(path,p);
+    if(r.d>maxDev) maxDev=r.d;
+    ts.push(r.t);
+  }
+  if(maxDev > TOL) return {ok:false, hint:'dev'};
+
+  const B=20, cov=new Array(B).fill(false);
+  for(const t of ts) cov[Math.min(B-1, Math.floor(t*B))]=true;
+  if(cov.filter(Boolean).length/B < 0.82) return {ok:false, hint:'cov'};
+
+  // drawn the wrong way round?
+  const sm = smooth(ts, 4);
+  let back=0;
+  for(let i=1;i<sm.length;i++) if(sm[i] < sm[i-1]-0.06) back++;
+  if(back > sm.length*0.25 && (sm[sm.length-1]-sm[0]) < 0.5) return {ok:false, hint:'dir'};
+
+  return {ok:true};
+}
+
+/* ---------- 9. UI helpers ---------- */
+const bubble = document.getElementById('bubble');
+const bubbleText = document.getElementById('bubbleText');
+const overlay = document.getElementById('overlay');
+
+function say(text, kind, sub){
+  bubbleText.innerHTML = text + (sub ? '<span class="sub">'+sub+'</span>' : '');
+  bubble.className = 'bubble pop' + (kind ? ' '+kind : '');
+  void bubble.offsetWidth;
+}
+function hintText(h){
+  const S=T();
+  return h==='start'?S.hStart : h==='end'?S.hEnd : h==='dev'?S.hDev :
+         h==='cov'?S.hCov : h==='dir'?S.hDir : S.hTiny;
+}
+
+function updateHUD(){
+  const L = LETTERS[li];
+  document.getElementById('bigchar').textContent = L.ch;
+  document.getElementById('romaji').textContent = L.rom;
+  document.getElementById('romajiSub').innerHTML = 'as in <b>'+L.hint.replace(/[“”]/g,'')+'</b>';
+  const dots = document.getElementById('strokedots');
+  dots.innerHTML='';
+  L.strokes.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='sdot'+(i<si?' done':(i===si?' now':''));
+    dots.appendChild(d);
+  });
+  // chips
+  const chips=document.getElementById('chips');
+  chips.innerHTML='';
+  LETTERS.forEach((x,i)=>{
+    const c=document.createElement('div');
+    const isDone=completed.has(i);
+    const isOpen = i<=unlocked || completed.size===LETTERS.length;
+    c.className='chip'+(isDone?' done':'')+(i===li?' current':'')+(isOpen?' unlocked':'');
+    c.innerHTML = isOpen ? x.ch : '<span class="lock">🔒</span>';
+    if(isOpen) c.onclick=()=>{ if(i!==li){ sndTap(); loadLetter(i); } };
+    chips.appendChild(c);
+  });
+  document.getElementById('tagline').textContent = T().tagline;
+  document.getElementById('btnShow').textContent = T().show;
+  document.getElementById('btnHear').textContent = T().hear;
+  document.getElementById('btnClear').textContent = T().clear;
+  document.getElementById('btnDiff').textContent = easy?T().easy:T().normal;
+  document.getElementById('btnSound').textContent = T().sound+': '+(soundOn?'on':'off');
+  document.getElementById('btnLang').textContent = T().lang;
+  document.getElementById('howto').textContent = T().howto;
+}
+
+function loadLetter(i){
+  clearTimeout(autoTimer);
+  li = i; si = 0; ink = []; doneStrokes = []; mistakes = 0; strokeMistakes = 0;
+  demo = null; locked = false;
+  overlay.classList.remove('show');
+  confCtx.clearRect(0,0,SIZE,SIZE);
+  if(i>unlocked) unlocked = i;
+  say(T().stroke(si+1, LETTERS[li].strokes.length), '');
+  updateHUD(); render();
+}
+
+/* ---------- 10. pointer input ---------- */
+function toLocal(e){
+  const r = cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(SIZE/r.width), y:(e.clientY-r.top)*(SIZE/r.height) };
+}
+cv.addEventListener('pointerdown', e=>{
+  if(locked || demo) return;
+  cv.setPointerCapture(e.pointerId);
+  drawing = true; ink = [toLocal(e)];
+  render();
+});
+cv.addEventListener('pointermove', e=>{
+  if(!drawing) return;
+  const p = toLocal(e);
+  const last = ink[ink.length-1];
+  if(!last || dist(last,p) > 4){ ink.push(p); render(); }
+});
+function endStroke(e){
+  if(!drawing) return;
+  drawing = false;
+  const drawn = ink;
+  if(drawn.length < 3){ ink=[]; render(); return; }
+  const path = LETTERS[li].strokes[si];
+  const res = evaluate(drawn, path);
+  if(res.ok) goodStroke(); else badStroke(res.hint);
+}
+cv.addEventListener('pointerup', endStroke);
+cv.addEventListener('pointercancel', endStroke);
+window.addEventListener('pointerup', e=>{ if(drawing) endStroke(e); });
+// stop the page from scrolling / zooming while little hands draw
+cv.addEventListener('touchstart', e=>e.preventDefault(), {passive:false});
+cv.addEventListener('touchmove',  e=>e.preventDefault(), {passive:false});
+
+function goodStroke(){
+  const L = LETTERS[li];
+  doneStrokes.push(L.strokes[si]);
+  si++; strokeMistakes = 0; ink = [];
+  flash = {good:true, a:0.55};
+  let t = 0;
+  const anim = ()=>{ t+=0.06; flash.a = Math.max(0, 0.55-t); render(); if(flash && flash.a>0) requestAnimationFrame(anim); else flash=null; };
+  anim();
+  wrap.classList.remove('glow'); void wrap.offsetWidth; wrap.classList.add('glow');
+
+  if(si >= L.strokes.length){
+    letterFinished();
+  }else{
+    sndGood();
+    const S=T();
+    say(S.good[Math.floor(Math.random()*S.good.length)]+' 🎉', 'ok', T().stroke(si+1, L.strokes.length));
+  }
+  updateHUD(); render();
+}
+
+function badStroke(hint){
+  mistakes++; strokeMistakes++;
+  flash = {bad:true};
+  render();
+  sndBad();
+  wrap.classList.remove('shake'); void wrap.offsetWidth; wrap.classList.add('shake');
+  say(T().wrong+" 😊", 'bad', hintText(hint));
+  setTimeout(()=>{ ink=[]; flash=null; render(); }, 650);
+  if(strokeMistakes >= 3){ strokeMistakes = 0; setTimeout(()=>showDemo(), 900); }
+}
+
+/* ---------- 11. finishing a letter ---------- */
+function letterFinished(){
+  const L = LETTERS[li];
+  completed.add(li);
+  locked = true;
+  sndDone();
+  speak(L.ch);
+  const stars = mistakes===0 ? 3 : (mistakes<=2 ? 2 : 1);
+  burstConfetti();
+  const last = li >= LETTERS.length-1;
+  document.getElementById('ovTitle').textContent = T().done;
+  document.getElementById('ovStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  document.getElementById('ovText').textContent =
+    L.ch + ' = “' + L.rom + '”　・　' +
+    (mistakes===0 ? 'no mistakes!' : mistakes+' retry'+(mistakes>1?'s':'')) +
+    (last ? '　・　' + T().allDone : '');
+  const btn = document.getElementById('ovNext');
+  btn.textContent = last ? T().playAgain : T().next;
+  btn.onclick = ()=>{ clearTimeout(autoTimer); last ? restartAll() : loadLetter(li+1); };
+  setTimeout(()=>overlay.classList.add('show'), 380);
+  clearTimeout(autoTimer);
+  if(!last) autoTimer = setTimeout(()=>loadLetter(li+1), 3800);
+}
+
+function restartAll(){
+  completed.clear(); unlocked = 0;
+  loadLetter(0);
+  burstConfetti();
+  say(T().allDone+' 🌟','ok');
+}
+
+/* ---------- 12. demo animation ("Show me") ---------- */
+function showDemo(){
+  if(demo || locked) return;
+  locked = true; ink=[];
+  say(T().watch, '');
+  const L = LETTERS[li];
+  demo = {i:0, t:0, t0:performance.now(), dur:900};
+  const step = (now)=>{
+    if(!demo) return;
+    const dt = now - demo.t0; demo.t0 = now;
+    const cur = L.strokes[demo.i];
+    // long strokes take a little longer, but every stroke stays snappy
+    const dur = Math.min(2200, Math.max(700, pathLength(cur)*1.6));
+    demo.t += dt/dur;
+    if(demo.t >= 1){
+      demo.t = 0; demo.i++;
+      if(demo.i >= L.strokes.length){
+        demo = null; locked = false;
+        say(T().nowYou+' ✏️','',T().stroke(1, L.strokes.length));
+        render(); return;
+      }
+    }
+    render();
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- 13. confetti ---------- */
+let confettiParts = [], confettiRAF = null;
+function burstConfetti(){
+  const colors = ['#2fc07a','#2f7cf6','#ff8a3d','#ff5a5f','#ffd166','#a78bfa'];
+  for(let i=0;i<110;i++){
+    confettiParts.push({
+      x:(wrap.clientWidth||400)*(0.15+Math.random()*0.7),
+      y:(wrap.clientHeight||400)*0.35,
+      vx:(Math.random()-0.5)*7, vy:-4-Math.random()*7,
+      g:0.16+Math.random()*0.1,
+      s:5+Math.random()*7, rot:Math.random()*6, vr:(Math.random()-0.5)*0.3,
+      c:colors[Math.floor(Math.random()*colors.length)], life:1
+    });
+  }
+  if(!confettiRAF) confettiRAF = requestAnimationFrame(confettiStep);
+}
+function confettiStep(){
+  confCtx.clearRect(0,0,wrap.clientWidth+50, wrap.clientHeight+50);
+  let alive=0;
+  for(const p of confettiParts){
+    p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.008;
+    if(p.life<=0 || p.y > (wrap.clientHeight||400)+40) continue;
+    alive++;
+    confCtx.save(); confCtx.translate(p.x,p.y); confCtx.rotate(p.rot);
+    confCtx.globalAlpha = Math.max(0, Math.min(1,p.life));
+    confCtx.fillStyle = p.c; confCtx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);
+    confCtx.restore();
+  }
+  if(alive>0){ confettiRAF = requestAnimationFrame(confettiStep); }
+  else { confettiParts=[]; confCtx.clearRect(0,0,wrap.clientWidth+50, wrap.clientHeight+50); confettiRAF=null; }
+}
+
+/* ---------- 14. buttons ---------- */
+document.getElementById('btnShow').onclick = ()=>{ sndTap(); if(!locked && !demo) showDemo(); };
+document.getElementById('btnHear').onclick = ()=>{ speak(LETTERS[li].ch); sndTap(); };
+document.getElementById('btnClear').onclick = ()=>{
+  sndTap(); clearTimeout(autoTimer);
+  si=0; ink=[]; doneStrokes=[]; demo=null; locked=false; strokeMistakes=0;
+  overlay.classList.remove('show');
+  say(T().stroke(1, LETTERS[li].strokes.length),'');
+  updateHUD(); render();
+};
+document.getElementById('btnDiff').onclick = ()=>{ easy=!easy; sndTap(); updateHUD(); };
+document.getElementById('btnSound').onclick = ()=>{ soundOn=!soundOn; updateHUD(); if(soundOn) sndTap(); };
+document.getElementById('btnLang').onclick = ()=>{
+  LANG = (LANG==='en')?'si':'en'; sndTap(); updateHUD();
+  const L=LETTERS[li];
+  if(!locked) say(T().stroke(si+1, L.strokes.length), bubble.classList.contains('ok')?'ok':'');
+};
+
+/* ---------- 15. go! ---------- */
+buildGeometry();
+FONT = getComputedStyle(document.body).fontFamily || FONT;
+fitCanvasDPR();
+window.addEventListener('resize', fitCanvasDPR);
+if(window.ResizeObserver) new ResizeObserver(()=>fitCanvasDPR()).observe(wrap);
+loadLetter(0);
+
+// gentle animation loop (pulsing start dot) — throttled to ~30fps
+let lastFrame = 0;
+(function loop(ts){
+  requestAnimationFrame(loop);
+  if(ts - lastFrame < 32) return;
+  lastFrame = ts; pulseT = ts/1000;
+  if(!locked || demo) render();
+})(0);
+</script>
+</body>
+</html>
